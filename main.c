@@ -5,7 +5,7 @@ int main() {
   os_info os_info;
   get_os_info(&os_info);
 
-  printf("os: %s\nkernel release: %s\nmachine: %s\n", os_info.os_name, os_info.kernel_release, os_info.machine);
+  printf("%s", os_info.kernel.name);
 
   return 0;
 }
