@@ -1,3 +1,5 @@
+#pragma once
+
 typedef struct {
   char name[64];
   char pretty_name[64];

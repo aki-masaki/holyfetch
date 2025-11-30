@@ -1,3 +1,5 @@
+#pragma once
+
 typedef struct {
   char message[128];
   char output[2048];
