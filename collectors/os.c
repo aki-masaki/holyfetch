@@ -3,7 +3,7 @@
 #include <string.h>
 #include <sys/utsname.h>
 
-void extract_value(char *dest, char *line, size_t size) {
+void os_extract_value(char *dest, char *line, size_t size) {
   char *start = strchr(line, '"');
   char *end = strrchr(line, '"');
 
@@ -31,13 +31,13 @@ void get_os_name(os_info *out) {
 
   while (fgets(line, 256, file)) {
     if (strncmp(line, "NAME", 4) == 0)
-      extract_value(out->name, line, sizeof(out->name));
+      os_extract_value(out->name, line, sizeof(out->name));
     else if (strncmp(line, "PRETTY", 6) == 0)
-      extract_value(out->pretty_name, line, sizeof(out->pretty_name));
+      os_extract_value(out->pretty_name, line, sizeof(out->pretty_name));
     else if (strncmp(line, "ID", 2) == 0)
-      extract_value(out->id, line, sizeof(out->id));
+      os_extract_value(out->id, line, sizeof(out->id));
     else if (strncmp(line, "BUILD_ID", 7) == 0)
-      extract_value(out->build_id, line, sizeof(out->build_id));
+      os_extract_value(out->build_id, line, sizeof(out->build_id));
   }
 
   fclose(file);
