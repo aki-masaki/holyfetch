@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "collectors/os.h"
 #include "collectors/general.h"
 #include "config.h"

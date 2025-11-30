@@ -1,4 +1,4 @@
-#include "os.h"
+#include "collectors/os.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/utsname.h>

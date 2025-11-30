@@ -1,4 +1,4 @@
-#include "config.h"
+#include "../include/config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,12 +14,7 @@ int cfg_extract_value(char *line, char *field, char *value) {
   strncpy(field, line, len);
   field[len] = '\0'; 
 
-  len = strlen(eqi + 1);
-  if (len >= 128)
-    len = 127;
-
-  strncpy(value, eqi + 1, len);
-  value[len] = '\0';
+  snprintf(value, 128, "%s", eqi + 1);
 
   return 1;
 }
