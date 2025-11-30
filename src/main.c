@@ -1,13 +1,12 @@
-#include "collectors/os.h"
-#include "collectors/general.h"
 #include "config.h"
+#include "fetch.h"
 
 int main() {
-  os_info os_info;
-  get_os_info(&os_info);
-
   config config;
   read_config(&config);
+
+  fetch_data fetch_data;
+  perform_fetch(&fetch_data);
 
   return 0;
 }
