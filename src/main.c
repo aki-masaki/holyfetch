@@ -16,7 +16,7 @@ int main() {
   char error[128];
 
   if (expand_template(config.output, output, 2048, fetch_data, error) == 0)
-    printf("%s", output);
+    printf("%s\n" RESET, output);
   else
     printf(RED "error" RESET ": %s\n", error);
 

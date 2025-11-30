@@ -38,15 +38,11 @@ void read_config(config *out) {
   char value[128];
 
   while (fgets(line, 256, file)) {
-    if (line[0] == '[') {
+    if (line[0] == '@') {
       if (strncmp(line + 1, "output", 6) == 0) {
         while (fgets(line, 256, file)) {
-          // empty line
-          if (line[0] == '\n')
-            continue;
-
           // end of output
-          if (line[0] == '[' && strncmp(line + 1, "/output", 7) == 0)
+          if (line[0] == '}')
             break;
 
           strncat(out->output, line, 256);
