@@ -1,6 +1,8 @@
 #include "config.h"
 #include "fetch.h"
 #include "template.h"
+#include "colors.h"
+
 #include <stdio.h>
 
 int main() {
@@ -16,7 +18,7 @@ int main() {
   if (expand_template(config.output, output, 2048, fetch_data, error) == 0)
     printf("%s", output);
   else
-    printf("error: %s\n", error);
+    printf(RED "error" RESET ": %s\n", error);
 
   return 0;
 }

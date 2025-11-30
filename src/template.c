@@ -1,4 +1,5 @@
 #include "template.h"
+#include "colors.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +23,52 @@ int expand_template(char *template, char *out, size_t out_len, fetch_data data,
         i++;
         is_blank_line = 1;
         continue;
+      }
+      else if (line[i] == '#') {
+        if (i + 1 < (int)strlen(line) && line[i + 1] == '#') {
+          size_t out_len_current = strlen(out);
+
+          if (out_len_current + 1 < out_len) {
+            out[out_len_current] = '#';
+            out[out_len_current + 1] = '\0';
+          }
+
+          i++;
+          continue;
+        }
+
+        char *end = strchr(line + i + 1, '#');
+
+        char key[256];
+        size_t len = end - (line + i + 1);
+
+        if (len >= 256)
+          len = 255;
+
+        snprintf(key, len + 1, "%.*s", (int)len, line + i + 1);
+
+        if (strcmp(key, "RED") == 0)
+          strncat(out, RED, out_len - strlen(out) - 1);
+        else if (strcmp(key, "GREEN") == 0)
+          strncat(out, GREEN, out_len - strlen(out) - 1);
+        else if (strcmp(key, "YELLOW") == 0)
+          strncat(out, YELLOW, out_len - strlen(out) - 1);
+        else if (strcmp(key, "BLUE") == 0)
+          strncat(out, BLUE, out_len - strlen(out) - 1);
+        else if (strcmp(key, "MAGENTA") == 0)
+          strncat(out, MAGENTA, out_len - strlen(out) - 1);
+        else if (strcmp(key, "CYAN") == 0)
+          strncat(out, CYAN, out_len - strlen(out) - 1);
+        else if (strcmp(key, "RESET") == 0)
+          strncat(out, RESET, out_len - strlen(out) - 1);
+        else {
+          sprintf(error, "color %s doesn't exist", key);
+
+          return -1;
+        }
+
+        i += len + 1;
+
       }
       else if (line[i] == '%') {
         if (i + 1 < (int)strlen(line) && line[i + 1] == '%') {
