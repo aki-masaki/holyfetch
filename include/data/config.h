@@ -1,9 +1,10 @@
 #pragma once
 
 typedef struct {
-  char message[128];
-  char lines[3][256];
+  char lines[10][256];
   int line_cnt;
+  // 1 if line i is defined, 0 otherwise
+  int line_def[10];
 } config;
 
 void read_config(config *out);

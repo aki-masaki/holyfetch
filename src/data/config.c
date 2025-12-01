@@ -21,11 +21,16 @@ int cfg_extract_value(char *line, char *field, char *value) {
 }
 
 void read_config(config *out) {
+  out->line_cnt = 0;
+
+  for (int i = 0; i < 10; i++) 
+    out->line_def[i] = 0;
+
   const char *home = getenv("HOME");
   if (!home)
     return;
 
-  char path[256];
+  char path[256] = {0};
   snprintf(path, sizeof(path), "%s/.holyfetch", home);
 
   FILE *file = fopen(path, "r");
@@ -33,9 +38,9 @@ void read_config(config *out) {
   if (file == NULL)
     return;
 
-  char line[256];
-  char field[64];
-  char value[128];
+  char line[256] = {0};
+  char field[64] = {0};
+  char value[256] = {0};
 
   while (fgets(line, 256, file)) {
     if (line[0] == '@') {
@@ -45,9 +50,10 @@ void read_config(config *out) {
         int i = line[6] - '0'; // in the ascii table, '0' is n distance from any number ('4' - '0' = 4)
 
         if (fgets(line, 256, file))
-          snprintf(out->lines[i], 128, "%s", line);
+          sprintf(out->lines[i], "%s", line);
 
         out->line_cnt++;
+        out->line_def[i] = 1;
       }
     } else if (cfg_extract_value(line, field, value) == 0) {
 

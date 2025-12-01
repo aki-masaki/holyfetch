@@ -27,7 +27,7 @@ void get_os_name(os_info *out) {
     return;
   }
 
-  char line[256];
+  char line[256] = {0};
 
   while (fgets(line, 256, file)) {
     if (strncmp(line, "NAME", 4) == 0)

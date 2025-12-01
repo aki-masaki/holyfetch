@@ -53,7 +53,7 @@ int handle_value(char *line, int *i, char *out, int out_len, char *error,
                  fetch_data data) {
   char *end = strchr(line + *i + 1, '.');
 
-  char key[32];
+  char key[32] = {0};
 
   int len = end - (line + *i) - 1;
 
@@ -62,12 +62,14 @@ int handle_value(char *line, int *i, char *out, int out_len, char *error,
 
   snprintf(key, sizeof(key), "%.*s", len, line + *i + 1);
 
-  char value[128];
+  char value[128] = {0};
 
   if (get_value_by_key(data, key, value, 128) == 0) {
     *i += len + 1;
 
-    if (line[*i + 1] == ':') {
+    size_t line_len = strlen(line);
+
+    if (*i + 1 < (int)line_len && line[*i + 1] == ':') {
       // skip :
       (*i)++;
 
@@ -77,12 +79,12 @@ int handle_value(char *line, int *i, char *out, int out_len, char *error,
       if (modlen >= 64)
         modlen = 64;
 
-      char mod[64];
+      char mod[64] = {0};
       snprintf(mod, sizeof(mod), "%.*s", (int)modlen, line + *i + 1);
 
       *i += modlen + 1;
 
-      char final_value[128];
+      char final_value[128] = {0};
       apply_mod(value, final_value, mod);
 
       strcpy(value, final_value);
@@ -100,11 +102,14 @@ int handle_value(char *line, int *i, char *out, int out_len, char *error,
 
 int expand_template(char *line, char *out, size_t out_len, fetch_data data,
                     char *error, config config) {
-  char ch;
+  char ch = '\0';
   out[0] = '\0';
 
-  // iterate over each character (until line[i] == '\0')
-  for (int i = 0; (ch = line[i]); i++) {
+  int line_len = strlen(line);
+
+  for (int i = 0; i < line_len; i++) {
+    ch = line[i];
+
     // color
     if (ch == '#') {
       // find the pointer to the start of (
@@ -121,21 +126,29 @@ int expand_template(char *line, char *out, size_t out_len, fetch_data data,
       if (len >= 64)
         len = 64;
 
-      char color[64];
+      char color[64] = {0};
       snprintf(color, len + 1, "%.*s", (int)len, line + i + 1);
 
       const char *val = NULL;
 
-      for (size_t i = 0; i < colors_count; i++) {
-        if (strcmp(color, colors[i].key) == 0) {
-          val = colors[i].value;
+      for (size_t k = 0; k < colors_count; k++) {
+        if (strcmp(color, colors[k].key) == 0) {
+          val = colors[k].value;
           break;
         }
       }
 
-      if (val)
-        strncat(out, val, out_len - strlen(out) - 1);
-      else {
+      if (val) {
+        size_t out_len_cur = strlen(out);
+        size_t val_len = strlen(val);
+
+        if (out_len_cur + val_len >= out_len) {
+          snprintf(error, 128, "buffer overflow from color %s", color);
+          return -1;
+        }
+
+        strncat(out, val, out_len - out_len_cur - 1);
+      } else {
         snprintf(error, 128, "color %s doesn't exist", color);
         return -1;
       }
@@ -149,10 +162,10 @@ int expand_template(char *line, char *out, size_t out_len, fetch_data data,
       if (cnt_len >= 128)
         cnt_len = 128;
 
-      char content[128];
+      char content[128] = {0};
       snprintf(content, cnt_len + 1, "%.*s", (int)cnt_len, lpar + 1);
 
-      char final_content[256];
+      char final_content[256] = {0};
       expand_template(content, final_content, 256, data, error, config);
 
       strncat(out, final_content, out_len - strlen(out) - 1);
