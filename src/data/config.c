@@ -1,4 +1,4 @@
-#include "../include/config.h"
+#include "data/config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,7 +6,7 @@
 int cfg_extract_value(char *line, char *field, char *value) {
   char *eqi = strchr(line, '=');
   if (!eqi)
-    return 0;
+    return -1;
 
   size_t len = eqi - line;
   if (len >= 64)
@@ -17,7 +17,7 @@ int cfg_extract_value(char *line, char *field, char *value) {
 
   snprintf(value, 128, "%s", eqi + 1);
 
-  return 1;
+  return 0;
 }
 
 void read_config(config *out) {
@@ -39,17 +39,18 @@ void read_config(config *out) {
 
   while (fgets(line, 256, file)) {
     if (line[0] == '@') {
-      if (strncmp(line + 1, "output", 6) == 0) {
-        while (fgets(line, 256, file)) {
-          // end of output
-          if (line[0] == '}')
-            break;
+      if (strncmp(line + 1, "line", 4) == 0) {
+        // 012345. <- line[6] is here
+        // @line(i)
+        int i = line[6] - '0'; // in the ascii table, '0' is n distance from any number ('4' - '0' = 4)
 
-          strncat(out->output, line, 256);
-        }
+        if (fgets(line, 256, file))
+          snprintf(out->lines[i], 128, "%s", line);
+
+        out->line_cnt++;
       }
-    } else if (cfg_extract_value(line, field, value)) {
-      printf("%s: %s", field, value);
+    } else if (cfg_extract_value(line, field, value) == 0) {
+
     }
   }
 }
