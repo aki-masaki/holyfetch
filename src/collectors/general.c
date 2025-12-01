@@ -18,6 +18,8 @@ void get_hostname(char *out) {
 int get_packagescount() {
   FILE *fp = popen("pacman -Q | wc -l", "r");
 
+  if (fp == NULL) return 0;
+
   char buf[32] = {0};
   fgets(buf, sizeof(buf), fp);
 

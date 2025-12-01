@@ -10,4 +10,4 @@ typedef struct {
   const char *value;
 } color_map;
 
-int expand_template(char *line, char *out, size_t out_len, fetch_data data, char *error, config config);
+int expand_template(char *line, char *out, size_t out_len, fetch_data data, char *error, config config, int inner);

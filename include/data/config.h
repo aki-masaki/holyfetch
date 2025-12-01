@@ -7,4 +7,4 @@ typedef struct {
   int line_def[10];
 } config;
 
-void read_config(config *out);
+int read_config(config *out, char *error);

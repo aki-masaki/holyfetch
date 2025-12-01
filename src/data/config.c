@@ -1,4 +1,5 @@
 #include "data/config.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,23 +21,29 @@ int cfg_extract_value(char *line, char *field, char *value) {
   return 0;
 }
 
-void read_config(config *out) {
+int read_config(config *out, char *error) {
   out->line_cnt = 0;
 
-  for (int i = 0; i < 10; i++) 
+  for (int i = 0; i < 10; i++)
     out->line_def[i] = 0;
 
   const char *home = getenv("HOME");
-  if (!home)
-    return;
+  if (!home) {
+    sprintf(error, "%s", "can't get HOME env");
+
+    return -1;
+  }
 
   char path[256] = {0};
   snprintf(path, sizeof(path), "%s/.holyfetch", home);
 
   FILE *file = fopen(path, "r");
 
-  if (file == NULL)
-    return;
+  if (file == NULL) {
+    sprintf(error, "%s", "config file doens't exist");
+
+    return -1;
+  }
 
   char line[256] = {0};
   char field[64] = {0};
@@ -44,19 +51,34 @@ void read_config(config *out) {
 
   while (fgets(line, 256, file)) {
     if (line[0] == '@') {
-      if (strncmp(line + 1, "line", 4) == 0) {
+      if (strncmp(line + 1, "line", 4) == 0) { // +1 for \n
         // 012345. <- line[6] is here
         // @line(i)
-        int i = line[6] - '0'; // in the ascii table, '0' is n distance from any number ('4' - '0' = 4)
+        int i = line[6] - '0'; // in the ascii table, '0' is n distance from any
+                               // number ('4' - '0' = 4)
 
-        if (fgets(line, 256, file))
+        if (!isdigit(line[6])) {
+          sprintf(error, "line number %c not numeric", line[6]);
+
+          return -1;
+        }
+
+        if (fgets(line, 256, file)) {
+          if (line[0] == '@') {
+            sprintf(error, "line %d not defined", i);
+
+            return -1;
+          }
+
           sprintf(out->lines[i], "%s", line);
+        }
 
         out->line_cnt++;
         out->line_def[i] = 1;
       }
     } else if (cfg_extract_value(line, field, value) == 0) {
-
     }
   }
+
+  return 0;
 }
