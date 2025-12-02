@@ -3,6 +3,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int apply_mod(char *value, char *out, char *mod) {
@@ -16,6 +17,13 @@ int apply_mod(char *value, char *out, char *mod) {
     char *lastslash = strrchr(value, '/');
 
     strcpy(out, lastslash + 1);
+  } else if (strlen(mod) == 2 && mod[1] == 'b') {
+    if (mod[0] == 'k')
+      sprintf(out, "%.2Lf", strtold(value, NULL) / 1000);
+    else if (mod[0] == 'm')
+      sprintf(out, "%.2Lf", strtold(value, NULL) / 1000 / 1000);
+    else if (mod[0] == 'g')
+      sprintf(out, "%.2Lf", strtold(value, NULL) / 1000 / 1000 / 1000);
   } else
     return -1;
 
@@ -43,6 +51,12 @@ int get_value_by_key(fetch_data data, char *key, char *out, int out_len) {
     snprintf(out, out_len, "%s", data.username);
   else if (strcmp(key, "hostname") == 0)
     snprintf(out, out_len, "%s", data.hostname);
+  else if (strcmp(key, "uptime") == 0)
+    snprintf(out, out_len, "%ld", data.sys.uptime);
+  else if (strcmp(key, "freeram") == 0)
+    snprintf(out, out_len, "%ld", data.sys.freeram);
+  else if (strcmp(key, "totalram") == 0)
+    snprintf(out, out_len, "%ld", data.sys.totalram);
   else
     return -1;
 
