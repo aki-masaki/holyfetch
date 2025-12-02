@@ -1,4 +1,6 @@
 #include "data/config.h"
+#include "display/colors.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,6 +79,26 @@ int read_config(config *out, char *error) {
         out->line_def[i] = 1;
       }
     } else if (cfg_extract_value(line, field, value) == 0) {
+      value[strlen(value) - 1] = '\0';
+
+      if (strcmp(field, "art_color") == 0) {
+        const char *color = NULL;
+
+        for (size_t k = 0; k < colors_count; k++) {
+          if (strncmp(value, colors[k].key, strlen(colors[k].key)) == 0) {
+            color = colors[k].value;
+            break;
+          }
+        }
+
+        if (color)
+          snprintf(out->art_color, 16, "%s", color);
+        else {
+          snprintf(error, 128, "color %s doesn't exist", value);
+
+          return -1;
+        }
+      }
     }
   }
 

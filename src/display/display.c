@@ -1,4 +1,6 @@
 #include "display/display.h"
+#include "display/colors.h"
+
 #include <stdio.h>
 
 char *art[13] = {"                                         ____________________________________________",
@@ -16,16 +18,16 @@ char *art[13] = {"                                         _____________________
              "---------------/"};
 
 void display(char lines[][1024], config config) {
-  printf("%s\n", art[0]);
+  printf("%s%s\n" RESET, config.art_color, art[0]);
 
   for (int i = 0; i < 10; i++) {
     if (config.line_def[i] == 1) {
-      printf("%s %s", art[i + 1], lines[i]);
+      printf("%s%s " RESET "%s", config.art_color, art[i + 1], lines[i]);
     } else {
-      printf("%s\n", art[i + 1]);
+      printf("%s%s\n" RESET, config.art_color, art[i + 1]);
     }
   }
 
-  printf("%s\n", art[11]);
-  printf("%s\n", art[12]);
+  printf("%s%s\n", config.art_color, art[11]);
+  printf("%s\n" RESET, art[12]);
 }

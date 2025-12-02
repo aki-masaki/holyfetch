@@ -5,13 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-color_map colors[] = {
-    {"red", RED},         {"green", GREEN}, {"yellow", YELLOW}, {"blue", BLUE},
-    {"magenta", MAGENTA}, {"cyan", CYAN},   {"nocolor", RESET},
-};
-
-size_t colors_count = sizeof(colors) / sizeof(colors[0]);
-
 int apply_mod(char *value, char *out, char *mod) {
   if (strcmp(mod, "lower") == 0) {
     for (int i = 0; value[i]; i++)
@@ -19,6 +12,10 @@ int apply_mod(char *value, char *out, char *mod) {
   } else if (strcmp(mod, "upper") == 0) {
     for (int i = 0; value[i]; i++)
       out[i] = toupper(value[i]);
+  } else if (strcmp(mod, "basename") == 0) {
+    char *lastslash = strrchr(value, '/');
+
+    strcpy(out, lastslash + 1);
   } else
     return -1;
 
@@ -88,7 +85,7 @@ int handle_value(char *line, int *i, char *out, int out_len, char *error,
       *i += modlen + 1;
 
       char final_value[128] = {0};
-      
+
       if (apply_mod(value, final_value, mod) == -1) {
         snprintf(error, 128, "mod %s doesn't exist", mod);
 
@@ -101,6 +98,61 @@ int handle_value(char *line, int *i, char *out, int out_len, char *error,
     strncat(out, value, out_len - strlen(out) - 1);
   } else {
     snprintf(error, 128, "key %s doesn't exist", key);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int handle_env(char *line, int *i, char *out, int out_len, char *error) {
+  char *end = strchr(line + *i + 1, '$');
+
+  char key[64] = {0};
+
+  int len = end - (line + *i) - 1;
+
+  if (len >= 64)
+    len = 63;
+
+  snprintf(key, sizeof(key), "%.*s", len, line + *i + 1);
+
+  char *env = getenv(key);
+
+  if (env) {
+    *i += len + 1;
+
+    size_t line_len = strlen(line);
+
+    if (*i + 1 < (int)line_len && line[*i + 1] == ':') {
+      // skip :
+      (*i)++;
+
+      char *rcol = strchr(line + *i + 1, ':');
+      size_t modlen = rcol - (line + *i + 1);
+
+      if (modlen >= 64)
+        modlen = 64;
+
+      char mod[64] = {0};
+      snprintf(mod, sizeof(mod), "%.*s", (int)modlen, line + *i + 1);
+
+      *i += modlen + 1;
+
+      char final_value[128] = {0};
+
+      if (apply_mod((char *)env, final_value, mod) == -1) {
+        snprintf(error, 128, "mod %s doesn't exist", mod);
+
+        return -1;
+      }
+
+      strcpy(env, final_value);
+    }
+
+    strncat(out, env, out_len - strlen(out) - 1);
+  } else {
+    snprintf(error, 128, "can't get env %s", key);
 
     return -1;
   }
@@ -181,7 +233,8 @@ int expand_template(char *line, char *out, size_t out_len, fetch_data data,
       char *rpar = strchr(lpar + 1, ')');
 
       // if the char before it is '\', it is escaped
-      while (rpar && (rpar - 1)[0] == '\\') rpar = strchr(rpar + 1, ')');
+      while (rpar && (rpar - 1)[0] == '\\')
+        rpar = strchr(rpar + 1, ')');
 
       if (!rpar) {
         snprintf(error, 128, "missing closing ')' from color %s", color);
@@ -222,8 +275,24 @@ int expand_template(char *line, char *out, size_t out_len, fetch_data data,
       // property
       if (handle_value(line, &i, out, out_len, error, data) == -1)
         return -1;
+    } else if (ch == '$') {
+      if (i + 1 < line_len && line[i + 1] == '$') {
+        size_t out_len_current = strlen(out);
+
+        if (out_len_current + 1 < out_len) {
+          out[out_len_current] = '$';
+          out[out_len_current + 1] = '\0';
+        }
+
+        i++;
+        continue;
+      }
+
+      if (handle_env(line, &i, out, out_len, error) == -1)
+        return -1;
     } else {
-      if (line[i] == '\\' && i + 1 < line_len && line[i + 1] == ')') continue;
+      if (line[i] == '\\' && i + 1 < line_len && line[i + 1] == ')')
+        continue;
 
       size_t out_len_current = strlen(out);
 
