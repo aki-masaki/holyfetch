@@ -53,31 +53,28 @@ int read_config(config *out, char *error) {
 
   while (fgets(line, 256, file)) {
     if (line[0] == '@') {
-      if (strncmp(line + 1, "line", 4) == 0) { // +1 for \n
-        // 012345. <- line[6] is here
-        // @line(i)
-        int i = line[6] - '0'; // in the ascii table, '0' is n distance from any
-                               // number ('4' - '0' = 4)
+      // @i
+      int i = line[1] - '0'; // in the ascii table, '0' is n distance from any
+                             // number ('4' - '0' = 4)
 
-        if (!isdigit(line[6])) {
-          sprintf(error, "line number %c not numeric", line[6]);
+      if (!isdigit(line[1])) {
+        sprintf(error, "line number %c not numeric", line[6]);
+
+        return -1;
+      }
+
+      if (fgets(line, 256, file)) {
+        if (line[0] == '@') {
+          sprintf(error, "line %d not defined", i);
 
           return -1;
         }
 
-        if (fgets(line, 256, file)) {
-          if (line[0] == '@') {
-            sprintf(error, "line %d not defined", i);
-
-            return -1;
-          }
-
-          sprintf(out->lines[i], "%s", line);
-        }
-
-        out->line_cnt++;
-        out->line_def[i] = 1;
+        sprintf(out->lines[i], "%s", line);
       }
+
+      out->line_cnt++;
+      out->line_def[i] = 1;
     } else if (cfg_extract_value(line, field, value) == 0) {
       value[strlen(value) - 1] = '\0';
 

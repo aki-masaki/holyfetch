@@ -31,7 +31,7 @@ int main() {
     }
   }
 
-  display(lines, config);
+  //display(lines, config);
 
   return 0;
 }
