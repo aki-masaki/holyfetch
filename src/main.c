@@ -24,11 +24,13 @@ int main() {
   for (int i = 0; i < 10; i++) {
     if (config.line_def[i] == 0) continue;
 
-    if (expand_template(config.lines[i], lines[i], 1024, fetch_data, error, config, 0) == -1) {
+    if (expand_template(config.lines[i], lines[i], 1024, fetch_data, error, config) == -1) {
       printf(RED "%s\n" RESET, error);
 
       return 0;
     }
+
+    printf("%s", lines[i]);
   }
 
   //display(lines, config);

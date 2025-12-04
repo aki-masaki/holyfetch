@@ -1,7 +1,6 @@
 #include "display/template.h"
 #include "display/colors.h"
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,8 +90,8 @@ int handle_colors(char *line, char *out, size_t out_len, char *error) {
       // current length of out
       size_t outclen = strlen(out);
       
-      // the maximum size they both occupy is 6 bytes (color_code) + 128 (content) + 6 (reset color code) = 140
-      if (outclen + 140 >= out_len) {
+      // the maximum size they both occupy is 6 bytes (color_code with '\0') + 128 (content) + 6 (reset color code with '\0') = 140
+      if (outclen + 10 + strlen(content)  >= out_len) {
         sprintf(error, "buffer overflow from color %s", color_key);
 
         return -1;
@@ -116,14 +115,106 @@ int handle_colors(char *line, char *out, size_t out_len, char *error) {
     }
   }
 
-  printf("%s\n", out);
+  return 0;
+}
+
+int get_value_by_key(char *key, char *out, fetch_data data) {
+  if (strcmp(key, "username") == 0)
+    sprintf(out, "%s", data.username);
+  else if (strcmp(key, "hostname") == 0)
+    sprintf(out, "%s", data.hostname);
+  else if (strcmp(key, "os_name") == 0)
+    sprintf(out, "%s", data.os.name);
+  else if (strcmp(key, "os_pretty_name") == 0)
+    sprintf(out, "%s", data.os.pretty_name);
+  else if (strcmp(key, "os_id") == 0)
+    sprintf(out, "%s", data.os.id);
+  else if (strcmp(key, "os_build_id") == 0)
+    sprintf(out, "%s", data.os.build_id);
+  else if (strcmp(key, "kernel_name") == 0)
+    sprintf(out, "%s", data.os.kernel.name);
+  else if (strcmp(key, "kernel_machine") == 0)
+    sprintf(out, "%s", data.os.kernel.machine);
+  else if (strcmp(key, "kernel_release") == 0)
+    sprintf(out, "%s", data.os.kernel.release);
+  else if (strcmp(key, "pkgcnt") == 0)
+    sprintf(out, "%d", data.pkgcnt);
+  else if (strcmp(key, "totalram") == 0)
+    sprintf(out, "%ld", data.sys.totalram);
+  else if (strcmp(key, "freeram") == 0)
+    sprintf(out, "%ld", data.sys.freeram);
+  else if (strcmp(key, "rampercent") == 0)
+    sprintf(out, "%ld", data.sys.freeram / data.sys.totalram);
+  else return -1;
+  
+  return 0;
+}
+
+int handle_values(char *line, char *out, size_t out_len, fetch_data data, char *error) {
+  for (int i = 0; line[i]; i++) {
+    if (line[i] == '{') {
+      // pointer to the next '}' after '{'
+      // {username}
+      // %        ^    % - line + i; ^ - rbrace
+      char *rbrace = strchr(line + i, '}');
+
+      // how many characters from '}' to the character after '{'
+      // {username}
+      // 0123456789       0 (line + i); 1 (line + i + 1); 9 (rbrace)
+      // 9 - (0 + 1) = 8 ("username" has 8 characters)
+      size_t key_len = rbrace - (line + i + 1);
+
+      if (key_len >= 64) {
+        strcpy(error, "key can't be more than 64 characters");
+
+        return -1;
+      }
+
+      char key[64];
+
+      sprintf(key, "%.*s", (int)key_len, line + i + 1);
+
+      char value[256];
+
+      get_value_by_key(key, value, data);
+
+      // current length of out
+      size_t outclen = strlen(out);
+      
+      if (outclen + strlen(value) >= out_len) {
+        sprintf(error, "buffer overflow from value %s", key);
+
+        return -1;
+      }
+
+      strcat(out, value);
+
+      i += key_len + 1;
+    } else {
+      // if its not a value, just add it to out
+      size_t out_len_current = strlen(out);
+
+      if (out_len_current + 1 < out_len) {
+        out[out_len_current] = line[i];
+        out[out_len_current + 1] = '\0';
+      }
+    }
+  }
 
   return 0;
 }
 
 int expand_template(char *line, char *out, size_t out_len, fetch_data data,
-                    char *error, config config, int inner) {
-  if (handle_colors(line, out, out_len, error) != 0)
+                    char *error, config config) {
+  char tmp[512];
+  tmp[0] = '\0';
+
+  if (handle_colors(line, tmp, sizeof(tmp), error) != 0)
+    return -1;
+
+  out[0] = '\0';
+
+  if (handle_values(tmp, out, out_len, data, error) != 0)
     return -1;
 
   return 0;
