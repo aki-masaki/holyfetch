@@ -176,7 +176,26 @@ int handle_values(char *line, char *out, size_t out_len, fetch_data data, char *
 
       char value[256];
 
-      get_value_by_key(key, value, data);
+      if (key[0] == '$') {
+        //                     + 1 (skip $)
+        char *env = getenv(key + 1);
+
+        if (env == NULL) {
+          sprintf(error, "env \"%s\" value doesn't exist", key);
+
+          return -1;
+        }
+
+        if (strlen(env) > 256) {
+          sprintf(error, "env \"%s\" value can't be more than 256 characters", key);
+
+          return -1;
+        }
+
+        sprintf(value, "%s", env);
+      } else {
+        get_value_by_key(key, value, data);
+      }
 
       // current length of out
       size_t outclen = strlen(out);
