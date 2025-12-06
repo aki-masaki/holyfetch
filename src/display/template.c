@@ -1,6 +1,8 @@
 #include "display/template.h"
 #include "display/colors.h"
 
+#include <ctype.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,9 +22,8 @@ int handle_colors(char *line, char *out, size_t out_len, char *error) {
         return -1;
       }
 
-      // how many characters are from '<' to the character after '#' ? (in memory)
-      // #blue<...>
-      // 012345 5 - 0 - 1 = 4 (blue) 
+      // how many characters are from '<' to the character after '#' ? (in
+      // memory) #blue<...> 012345 5 - 0 - 1 = 4 (blue)
       size_t clrlen = lb - (line + i) - 1;
 
       if (clrlen > 7) {
@@ -34,13 +35,14 @@ int handle_colors(char *line, char *out, size_t out_len, char *error) {
       // longest allowed color key is 'magenta' (7 characters + 1 for \0)
       char color_key[8];
 
-      // line + i + 1 is the character after '#' (the first character of the color key)
-      // so copy from there, clrlen characters (the amount of characters to '<')
-      // since clrlen is maximum 7, we dont have to worry about buffer overflows
+      // line + i + 1 is the character after '#' (the first character of the
+      // color key) so copy from there, clrlen characters (the amount of
+      // characters to '<') since clrlen is maximum 7, we dont have to worry
+      // about buffer overflows
       sprintf(color_key, "%.*s", (int)clrlen, line + i + 1);
 
       char content[128];
-      
+
       // pointer to the next '>' after '<'
       // #blue<...>
       //          - here
@@ -52,20 +54,22 @@ int handle_colors(char *line, char *out, size_t out_len, char *error) {
         return -1;
       }
 
-      // how many characters are from '>' to the character after '<' ? (in memory)
-      // #blue<...>
+      // how many characters are from '>' to the character after '<' ? (in
+      // memory) #blue<...>
       //      01234 4 - 0 - 1 = 3 (...)
       size_t cntlen = rb - lb - 1;
 
       if (cntlen > 127) {
-        sprintf(error, "color %s can't contain more than 127 characters", color_key);
+        sprintf(error, "color %s can't contain more than 127 characters",
+                color_key);
 
         return -1;
       }
 
       // lb + 1 is the character after '<' (the first character of content)
       // so copy from there, cntlen characters (the amount of characters to '>')
-      // since cntlen is maximum 127, we dont have to worry about buffer overflows
+      // since cntlen is maximum 127, we dont have to worry about buffer
+      // overflows
       sprintf(content, "%.*s", (int)cntlen, lb + 1);
 
       // we have the color_key but not the actual ASCII code
@@ -86,12 +90,13 @@ int handle_colors(char *line, char *out, size_t out_len, char *error) {
 
       // at this point we have both the code for the color and the content
       // all it's left is to add them to out
-      
+
       // current length of out
       size_t outclen = strlen(out);
-      
-      // the maximum size they both occupy is 6 bytes (color_code with '\0') + 128 (content) + 6 (reset color code with '\0') = 140
-      if (outclen + 10 + strlen(content)  >= out_len) {
+
+      // the maximum size they both occupy is 6 bytes (color_code with '\0') +
+      // 128 (content) + 6 (reset color code with '\0') = 140
+      if (outclen + 10 + strlen(content) >= out_len) {
         sprintf(error, "buffer overflow from color %s", color_key);
 
         return -1;
@@ -143,15 +148,47 @@ int get_value_by_key(char *key, char *out, fetch_data data) {
     sprintf(out, "%ld", data.sys.totalram);
   else if (strcmp(key, "freeram") == 0)
     sprintf(out, "%ld", data.sys.freeram);
+  else if (strcmp(key, "occupiedram") == 0)
+    sprintf(out, "%ld", data.sys.totalram - data.sys.freeram);
   else if (strcmp(key, "rampercent") == 0)
-    sprintf(out, "%ld", data.sys.freeram / data.sys.totalram);
-  else return -1;
-  
+    sprintf(out, "%Lf", (data.sys.totalram - data.sys.freeram) / (long double)data.sys.totalram * 100);
+  else
+    return -1;
+
   return 0;
 }
 
-int handle_values(char *line, char *out, size_t out_len, fetch_data data, char *error) {
+int apply_mod(char *mod, char *value) {
+  if (strcmp(mod, "lowercase") == 0) {
+    for (int i = 0; value[i]; i++)
+      value[i] = tolower(value[i]);
+  } else if (strcmp(mod, "uppercase") == 0) {
+    for (int i = 0; value[i]; i++)
+      value[i] = toupper(value[i]);
+  } else if (strcmp(mod, "gb") == 0) {
+    long valuenum = strtol(value, NULL, 0);
+
+    sprintf(value, "%ld", valuenum / 1000 / 1000 / 1000);
+  }
+
+  return 0;
+}
+
+int handle_values(char *line, char *out, size_t out_len, fetch_data data,
+                  char *error) {
   for (int i = 0; line[i]; i++) {
+    if (line[i] == '\\' && i + 1 < (int)out_len && line[i + 1] == '{') {
+      size_t out_len_current = strlen(out);
+
+      if (out_len_current + 1 < out_len) {
+        out[out_len_current] = '{';
+        out[out_len_current + 1] = '\0';
+      }
+
+      i++;
+      continue;
+    }
+
     if (line[i] == '{') {
       // pointer to the next '}' after '{'
       // {username}
@@ -187,7 +224,8 @@ int handle_values(char *line, char *out, size_t out_len, fetch_data data, char *
         }
 
         if (strlen(env) > 256) {
-          sprintf(error, "env \"%s\" value can't be more than 256 characters", key);
+          sprintf(error, "env \"%s\" value can't be more than 256 characters",
+                  key);
 
           return -1;
         }
@@ -199,16 +237,46 @@ int handle_values(char *line, char *out, size_t out_len, fetch_data data, char *
 
       // current length of out
       size_t outclen = strlen(out);
-      
+
       if (outclen + strlen(value) >= out_len) {
         sprintf(error, "buffer overflow from value %s", key);
 
         return -1;
       }
 
+      char *colon = rbrace + 1;
+      char *semi;
+
+      size_t mods_total_len = 0;
+      size_t len = 0;
+      char mod[32];
+
+      if (*colon == ':') {
+        // pointer to the semicolon after colon
+        semi = strchr(colon, ';');
+        // the length of the mod
+        // {username}:lowercase;
+        //           0123456789^   ^ (9 - 1 + 1) = 9
+        len = semi - (colon + 1);
+
+        mod[0] = '\0';
+
+        if (len >= 32) {
+          sprintf(error, "mod for %s can't be more than 32 characters", key);
+
+          return -1;
+        }
+
+        sprintf(mod, "%.*s", (int)len, colon + 1);
+
+        mods_total_len += len + 2;
+
+        apply_mod(mod, value);
+      }
+
       strcat(out, value);
 
-      i += key_len + 1;
+      i += key_len + mods_total_len + 1;
     } else {
       // if its not a value, just add it to out
       size_t out_len_current = strlen(out);

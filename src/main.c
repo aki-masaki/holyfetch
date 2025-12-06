@@ -29,11 +29,9 @@ int main() {
 
       return 0;
     }
-
-    printf("%s", lines[i]);
   }
 
-  //display(lines, config);
+  display(lines, config);
 
   return 0;
 }
